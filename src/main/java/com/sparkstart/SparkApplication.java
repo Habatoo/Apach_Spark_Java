@@ -1,6 +1,9 @@
 package com.sparkstart;
 
 
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.SequenceFileOutputFormat;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -105,5 +108,23 @@ public class SparkApplication {
         JavaPairRDD<String, String> newPairRDD_6 = javaSparkContext.parallelizePairs(list_6);
         JavaPairRDD<String, String> sortPairRDD = newPairRDD_6.sortByKey();
         System.out.println(sortPairRDD.collect());
+
+        // read data
+        JavaRDD<String> textFile = javaSparkContext.textFile("src/main/resources/data.txt");
+        JavaPairRDD<String, String> pairRDD1 = javaSparkContext.wholeTextFiles("src/main/resources/data.txt");
+        System.out.println(textFile);
+        System.out.println(pairRDD1);
+        textFile.saveAsTextFile("src/main/resources/text");
+        // save as object
+        textFile.saveAsObjectFile("src/main/resources/object");
+        // save in hadoop format
+        JavaPairRDD<Text, IntWritable> javaPairRDD = textFile.mapToPair(
+                record -> new Tuple2<>(new Text(record), new IntWritable()));
+        javaPairRDD.saveAsHadoopFile(
+                "src/main/resources/hadoop", Text.class, IntWritable.class, SequenceFileOutputFormat.class);
+        // read as hadoop
+        JavaPairRDD<Text, IntWritable> textIntWritableJavaPairRDD = javaSparkContext.sequenceFile(
+                "src/main/resources/hadoop", Text.class, IntWritable.class);
+        textIntWritableJavaPairRDD.map(f -> f._1().toString()).foreach(x -> System.out.println(x));
     }
 }
